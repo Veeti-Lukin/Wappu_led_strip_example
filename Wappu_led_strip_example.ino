@@ -12,104 +12,133 @@ FASTLED_USING_NAMESPACE
 #define FRAMES_PER_SECOND  120    // Desired frame rate for the animation (frames per second)
 // ------------------------------------------------------------------------------
 
+
 // --------------------------------- EFFECT CONFIG ------------------------------
+#define EFFECT_DURATION_S 10 // How long one effect lasts in seconds
+
+// List all effect function prototypes
+// Add all the effec function prototypes first here and then define them after main loop function.
+void rainbow();
+void rainbowWithGlitter();
+void confetti();
+void sinelon();
+void bpm();
+void juggle();
+void staticRed();
+
+typedef void (*SimplePatternList[])();
+
+// List the used effect functions
+// Add the effects you want in the order you want them to cycle trough here
+SimplePatternList effect_functions = { staticRed, rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm };
+// ------------------------------------------------------------------------------
+
+// --------------------------------- EFFECT GLOBALS -----------------------------
+uint8_t current_effect = 0; // Index number of which pattern is current
+uint8_t hue = 0; // rotating "base color" used by many of the effects
+// ------------------------------------------------------------------------------
+
+// --------------------------------- LED GLOBALS --------------------------------
+CRGB leds[NUM_LEDS];
 // ------------------------------------------------------------------------------
 
 
-CRGB leds[NUM_LEDS];
-
 void setup() {
-  // put your setup code here, to run once:
+    // Arduino setup function that is run first when the program
+    // put your setup code here, to run once:
+    delay(3000); // 3 second delay for recovery
 
-  // tell FastLED about the LED strip configuration
-  FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+    // tell FastLED about the LED strip configuration
+    FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
 
-  // set master brightness control
-  FastLED.setBrightness(BRIGHTNESS);
+    // set master brightness control
+    FastLED.setBrightness(BRIGHTNESS);
 }
 
-uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
-uint8_t gHue = 0; // rotating "base color" used by many of the patterns
-typedef void (*SimplePatternList[])();
-// List of patterns to cycle through.  Each is defined as a separate function below.
-SimplePatternList gPatterns = { rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm };
-void loop()
-{
-  // Call the current pattern function once, updating the 'leds' array
-  gPatterns[gCurrentPatternNumber]();
 
-  // send the 'leds' array out to the actual LED strip
-  FastLED.show();  
-  // insert a delay to keep the framerate modest
-  FastLED.delay(1000/FRAMES_PER_SECOND); 
+void loop() {
+    // Call the current pattern function once, updating the 'leds' array
+    effect_functions[current_effect]();
 
-  // do some periodic updates
-  EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
-  EVERY_N_SECONDS( 10 ) { nextPattern(); } // change patterns periodically
+    // send the 'leds' array out to the actual LED strip
+    FastLED.show();  
+    // insert a delay to keep the framerate modest
+    FastLED.delay(1000/FRAMES_PER_SECOND); 
+
+    // do some periodic updates
+    EVERY_N_MILLISECONDS( 20 ) { hue++; } // slowly cycle the "base color" through the rainbow
+    EVERY_N_SECONDS(EFFECT_DURATION_S) { nextPattern(); } // change patterns periodically
 }
 
+
+
+// --------------------------------- EFFECT FUNCTIONS ---------------------------
+// --------------------------------- EFFECT HELPERS -----------------------------
+/*This macro calculates the number of elements in an array at compile time.
+ * It divides the total size of the array by the size of the first element
+ */
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 
-
-void nextPattern()
-{
-  // add one to the current pattern number, and wrap around at the end
-  gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE( gPatterns);
+void nextPattern() {
+    // add one to the current pattern number, and wrap around at the end
+    current_effect = (current_effect + 1) % ARRAY_SIZE( effect_functions);
 }
 
-void rainbow() 
-{
-  // FastLED's built-in rainbow generator
-  fill_rainbow( leds, NUM_LEDS, gHue, 7);
+void addGlitter( fract8 chanceOfGlitter) {
+    if( random8() < chanceOfGlitter) {
+      leds[ random16(NUM_LEDS) ] += CRGB::White;
+    }
+}
+// ------------------------------------------------------------------------------
+
+void rainbow() {
+    // FastLED's built-in rainbow generator
+    fill_rainbow( leds, NUM_LEDS, hue, 7);
 }
 
-void rainbowWithGlitter() 
-{
-  // built-in FastLED rainbow, plus some random sparkly glitter
-  rainbow();
-  addGlitter(80);
+void rainbowWithGlitter() {
+    // built-in FastLED rainbow, plus some random sparkly glitter
+    rainbow();
+    addGlitter(80);
 }
 
-void addGlitter( fract8 chanceOfGlitter) 
-{
-  if( random8() < chanceOfGlitter) {
-    leds[ random16(NUM_LEDS) ] += CRGB::White;
-  }
+
+void confetti() {
+    // random colored speckles that blink in and fade smoothly
+    fadeToBlackBy( leds, NUM_LEDS, 10);
+    int pos = random16(NUM_LEDS);
+    leds[pos] += CHSV(hue + random8(64), 200, 255);
 }
 
-void confetti() 
-{
-  // random colored speckles that blink in and fade smoothly
-  fadeToBlackBy( leds, NUM_LEDS, 10);
-  int pos = random16(NUM_LEDS);
-  leds[pos] += CHSV( gHue + random8(64), 200, 255);
+void sinelon() {
+    // a colored dot sweeping back and forth, with fading trails
+    fadeToBlackBy( leds, NUM_LEDS, 20);
+    int pos = beatsin16( 13, 0, NUM_LEDS-1 );
+    leds[pos] += CHSV(hue, 255, 192);
 }
 
-void sinelon()
-{
-  // a colored dot sweeping back and forth, with fading trails
-  fadeToBlackBy( leds, NUM_LEDS, 20);
-  int pos = beatsin16( 13, 0, NUM_LEDS-1 );
-  leds[pos] += CHSV( gHue, 255, 192);
-}
-
-void bpm()
-{
-  // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-  uint8_t BeatsPerMinute = 62;
-  CRGBPalette16 palette = PartyColors_p;
-  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
-  for( int i = 0; i < NUM_LEDS; i++) { //9948
-    leds[i] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*10));
-  }
+void bpm() {
+    // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+    uint8_t BeatsPerMinute = 62;
+    CRGBPalette16 palette = PartyColors_p;
+    uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
+    for( int i = 0; i < NUM_LEDS; i++) { //9948
+      leds[i] = ColorFromPalette(palette,hue+(i*2), beat-hue+(i*10));
+    }
 }
 
 void juggle() {
-  // eight colored dots, weaving in and out of sync with each other
-  fadeToBlackBy( leds, NUM_LEDS, 20);
-  uint8_t dothue = 0;
-  for( int i = 0; i < 8; i++) {
-    leds[beatsin16( i+7, 0, NUM_LEDS-1 )] |= CHSV(dothue, 200, 255);
-    dothue += 32;
-  }
+    // eight colored dots, weaving in and out of sync with each other
+    fadeToBlackBy( leds, NUM_LEDS, 20);
+    uint8_t dothue = 0;
+    for( int i = 0; i < 8; i++) {
+      leds[beatsin16( i+7, 0, NUM_LEDS-1 )] |= CHSV(dothue, 200, 255);
+      dothue += 32;
+    }
 }
+
+void staticRed() {
+    fill_solid(leds, NUM_LEDS, CRGB::Red);
+}
+
+// ------------------------------------------------------------------------------
