@@ -35,8 +35,9 @@ SimplePatternList effect_functions = { staticRed, rainbow, rainbowWithGlitter, c
 
 
 // --------------------------------- BUTTON CONFIG ------------------------------
-
+#define BUTTON_PIN 2
 // ------------------------------------------------------------------------------
+
 // --------------------------------- SERIAL CONFIG ------------------------------
 #define SERIAL_RATE 115200
 #define SERIAL_INSTRUCTION_MESSAGE "WELCOME: send number of effect to set"
@@ -57,6 +58,12 @@ void setup() {
     // Arduino setup function that is run first when the program
     // put your setup code here, to run once:
     delay(3000); // 3 second delay for recovery
+
+    // Set the button pin as input with internal pull-up resistor
+    pinMode(BUTTON_PIN, INPUT_PULLUP); 
+    // Attach interrupt to the button pin on falling edge
+    // This means that the button is connected between BUTTON_PIN and ground
+    attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonInterrupt, FALLING); 
 
     // Initialize serial communication
     Serial.begin(115200);
@@ -181,5 +188,11 @@ void tryReadEffectNumberFromSerial() {
     while (Serial.available() > 0) {
         Serial.read();
     }
+}
+// ------------------------------------------------------------------------------
+
+// --------------------------------- BUTTON FUNCTIOS ----------------------------
+void buttonInterrupt() {
+  nextPattern();
 }
 // ------------------------------------------------------------------------------
