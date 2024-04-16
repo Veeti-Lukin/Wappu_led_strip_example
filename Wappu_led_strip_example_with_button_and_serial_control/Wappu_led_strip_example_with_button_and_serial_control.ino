@@ -49,6 +49,7 @@ SimplePatternList effect_functions = { staticRed, rainbow, rainbowWithGlitter, c
 // --------------------------------- EFFECT GLOBALS -----------------------------
 uint8_t current_effect = 0; // Index number of which pattern is current
 uint8_t hue = 0; // rotating "base color" used by many of the effects
+bool effect_num_changed = false;
 // ------------------------------------------------------------------------------
 
 // --------------------------------- LED GLOBALS --------------------------------
@@ -85,6 +86,13 @@ void setup() {
 void loop() {
     tryReadEffectNumberFromSerial();
 
+    // only call if the effect number is changed
+    // Writing and reading rom is slow so only do this when necessary
+    if(effect_num_changed) {
+      effect_num_changed = false;
+      storeEffectNumberOnRom();
+    }
+
     // Call the current pattern function once, updating the 'leds' array
     effect_functions[current_effect]();
 
@@ -109,7 +117,7 @@ void loop() {
 void nextPattern() {
     // add one to the current pattern number, and wrap around at the end
     current_effect = (current_effect + 1) % ARRAY_SIZE( effect_functions);
-    storeEffectNumberOnRom();
+    effect_num_changed = true;
 }
 
 void addGlitter( fract8 chanceOfGlitter) {
@@ -189,7 +197,8 @@ void tryReadEffectNumberFromSerial() {
     }
   
     current_effect = incoming_byte; // Set the current effect based on the incoming byte   
-
+    effect_num_changed = true;
+    
     // Clear the serial buffer
     while (Serial.available() > 0) {
         Serial.read();
@@ -205,7 +214,8 @@ void buttonInterrupt() {
 
 // --------------------------------- EEPROM FUNCTIOS ----------------------------
 void storeEffectNumberOnRom() {
-    EEPROM.write(EEPROM_ADDRESS_FOR_STORED_EFFECT_NUM, current_effect);
+    // only wirtes the value if the value is modified
+    EEPROM.update(EEPROM_ADDRESS_FOR_STORED_EFFECT_NUM, current_effect);
 }
 
 void tryFetcStoredEffecNumberFromRom() {
@@ -219,7 +229,7 @@ void tryFetcStoredEffecNumberFromRom() {
     }
 
     current_effect = buffer;
-    Serial.print("Effec number loaded from rom. Effect number: ");
+    Serial.print("Effect number loaded from rom. Effect number: ");
     Serial.println(current_effect);
 }
 // ------------------------------------------------------------------------------
