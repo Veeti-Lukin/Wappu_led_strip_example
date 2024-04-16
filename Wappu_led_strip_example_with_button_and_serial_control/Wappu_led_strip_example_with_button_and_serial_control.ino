@@ -39,7 +39,7 @@ SimplePatternList effect_functions = { staticRed, rainbow, rainbowWithGlitter, c
 // ------------------------------------------------------------------------------
 
 // --------------------------------- SERIAL CONFIG ------------------------------
-#define SERIAL_RATE 115200
+#define SERIAL_RATE 9600
 #define SERIAL_INSTRUCTION_MESSAGE "WELCOME: send number of effect to set"
 #define SERIAL_EFFECT_NUM_OUT_OF_BOUNDS_ERROR "ERROR: effect number is too large"
 // ------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), buttonInterrupt, FALLING); 
 
     // Initialize serial communication
-    Serial.begin(115200);
+    Serial.begin(SERIAL_RATE);
     // Send the instructions trough serial
     Serial.println(SERIAL_INSTRUCTION_MESSAGE);
 
@@ -175,11 +175,12 @@ void tryReadEffectNumberFromSerial() {
     if (Serial.available() == 0) return;
     
     int incoming_byte = Serial.parseInt(); // Read the incoming byte as an integer
-    if (incoming_byte < 0 || incoming_byte > ARRAY_SIZE(effect_functions)) {
-      Serial.print(SERIAL_EFFECT_NUM_OUT_OF_BOUNDS_ERROR);
-      Serial.print(" MAX is: ");
-      Serial.print(String(ARRAY_SIZE(effect_functions)-1));
-      Serial.println();
+    if (incoming_byte < 0 || incoming_byte > ARRAY_SIZE(effect_functions)-1) {
+        Serial.print(SERIAL_EFFECT_NUM_OUT_OF_BOUNDS_ERROR);
+        Serial.print(" MAX is: ");
+        Serial.print(String(ARRAY_SIZE(effect_functions)-1));
+        Serial.println();
+        return;
     }
   
     current_effect = incoming_byte; // Set the current effect based on the incoming byte   
