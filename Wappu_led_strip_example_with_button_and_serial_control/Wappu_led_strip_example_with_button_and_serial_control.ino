@@ -16,7 +16,7 @@ FASTLED_USING_NAMESPACE
 
 // --------------------------------- EFFECT CONFIG ------------------------------
 #define EFFECT_DURATION_S 10 // How long one effect lasts in seconds
-#define EEPROM_ADDRESS_FOR_STORED_EFFECT_NUM 0x100 // Rom address where to store and where to fetch the stored effect number
+#define EEPROM_ADDRESS_FOR_STORED_EFFECT_NUM 0x0 // Rom address where to store and where to fetch the stored effect number
 
 // List all effect function prototypes
 // Add all the effec function prototypes first here and then define them after main loop function.
@@ -219,5 +219,7 @@ void tryFetcStoredEffecNumberFromRom() {
     }
 
     current_effect = buffer;
+    Serial.print("Effec number loaded from rom. Effect number: ");
+    Serial.println(current_effect);
 }
 // ------------------------------------------------------------------------------
