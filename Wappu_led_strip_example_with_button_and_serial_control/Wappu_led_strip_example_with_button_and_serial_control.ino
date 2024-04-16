@@ -1,4 +1,5 @@
 #include <FastLED.h>
+#include <EEPROM.h>
 
 FASTLED_USING_NAMESPACE
 
@@ -15,6 +16,7 @@ FASTLED_USING_NAMESPACE
 
 // --------------------------------- EFFECT CONFIG ------------------------------
 #define EFFECT_DURATION_S 10 // How long one effect lasts in seconds
+#define EEPROM_ADDRESS_FOR_STORED_EFFECT_NUM 0x100 // Rom address where to store and where to fetch the stored effect number
 
 // List all effect function prototypes
 // Add all the effec function prototypes first here and then define them after main loop function.
@@ -70,6 +72,8 @@ void setup() {
     // Send the instructions trough serial
     Serial.println(SERIAL_INSTRUCTION_MESSAGE);
 
+    tryFetcStoredEffecNumberFromRom();
+
     // tell FastLED about the LED strip configuration
     FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
 
@@ -105,6 +109,7 @@ void loop() {
 void nextPattern() {
     // add one to the current pattern number, and wrap around at the end
     current_effect = (current_effect + 1) % ARRAY_SIZE( effect_functions);
+    storeEffectNumberOnRom();
 }
 
 void addGlitter( fract8 chanceOfGlitter) {
@@ -194,6 +199,25 @@ void tryReadEffectNumberFromSerial() {
 
 // --------------------------------- BUTTON FUNCTIOS ----------------------------
 void buttonInterrupt() {
-  nextPattern();
+    nextPattern();
+}
+// ------------------------------------------------------------------------------
+
+// --------------------------------- EEPROM FUNCTIOS ----------------------------
+void storeEffectNumberOnRom() {
+    EEPROM.write(EEPROM_ADDRESS_FOR_STORED_EFFECT_NUM, current_effect);
+}
+
+void tryFetcStoredEffecNumberFromRom() {
+    uint8_t buffer;
+    EEPROM.get(EEPROM_ADDRESS_FOR_STORED_EFFECT_NUM, buffer);
+
+    if (buffer < 0 || buffer > ARRAY_SIZE(effect_functions)-1) {
+      Serial.println("Failed to fetch stored effect number from ROM");
+      current_effect = 0;
+      return;
+    }
+
+    current_effect = buffer;
 }
 // ------------------------------------------------------------------------------
