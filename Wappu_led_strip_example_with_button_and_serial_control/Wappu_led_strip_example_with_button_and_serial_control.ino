@@ -5,7 +5,7 @@ FASTLED_USING_NAMESPACE
 
 // --------------------------------- LED CONFIG ---------------------------------
 #define DATA_PIN    3      // Digital pin connected to the data line of the LED strip
-#define LED_TYPE    WS2811 // Type of LED chip used in the LED strip
+#define LED_TYPE    WS2812 // Type of LED chip used in the LED strip
 #define COLOR_ORDER GRB    // Color order of the LED strip (Green-Red-Blue)
 #define NUM_LEDS    10     // Total number of LEDs in the LED strip
 
